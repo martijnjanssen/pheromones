@@ -3,8 +3,10 @@ import { memory } from "pheromones/pheromones_bg";
 
 const CELL_SIZE = 7;
 const GRID_COLOR = "#CCCCCC";
-const DEAD_COLOR = "#FFFFFF";
-const ALIVE_COLOR = "#000000";
+const GROUND_COLOR = "#FFFFFF";
+const WALL_COLOR = "#000000";
+const START_COLOR = "#FF0000";
+const END_COLOR = "#00FF00";
 
 const universe = Universe.new();
 const width = universe.width();
@@ -17,8 +19,11 @@ canvas.width = (CELL_SIZE + 1) * width + 1;
 const ctx = canvas.getContext('2d');
 
 let animationId = null;
-const  playPauseButton = document.getElementById("play-pause");
+const playPauseButton = document.getElementById("play-pause");
+const setStartButton = document.getElementById("set-start");
+const setEndButton = document.getElementById("set-end");
 
+let placing = Cell.Wall;
 
 
 const drawGrid = () => {
@@ -54,9 +59,7 @@ const drawCells = () => {
     for (let col = 0; col < width; col++) {
       const idx = getIndex(row, col);
 
-      ctx.fillStyle = cells[idx] === Cell.Dead
-        ? DEAD_COLOR
-        : ALIVE_COLOR;
+      ctx.fillStyle = getColor(cells[idx]);
 
       ctx.fillRect(
         col * (CELL_SIZE + 1) + 1,
@@ -69,6 +72,21 @@ const drawCells = () => {
 
   ctx.stroke();
 };
+
+const getColor = (cell) => {
+  switch (cell) {
+  case Cell.Ground:
+    return GROUND_COLOR;
+  case Cell.Wall:
+    return WALL_COLOR;
+  case Cell.Start:
+    return START_COLOR;
+  case Cell.End:
+    return END_COLOR;
+  default:
+    return "#FFFF00";
+  }
+}
 
 const isPaused = () => {
     return animationId === null;
@@ -93,6 +111,14 @@ playPauseButton.addEventListener("click", event => {
     }
 });
 
+setStartButton.addEventListener("click", event => {
+  placing = Cell.Start;
+});
+
+setEndButton.addEventListener("click", event => {
+  placing = Cell.End;
+});
+
 canvas.addEventListener("click", event => {
   const boundingRect = canvas.getBoundingClientRect();
 
@@ -105,7 +131,15 @@ canvas.addEventListener("click", event => {
   const row = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), height - 1);
   const col = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), width - 1);
 
-  universe.toggle_cell(row, col);
+  if (placing === Cell.Wall) {
+    universe.toggle_wall(row, col);
+  } else if (placing === Cell.Start) {
+    universe.set_start(row, col);
+    placing = Cell.Wall;
+  } else if (placing === Cell.End) {
+    universe.set_end(row, col);
+    placing = Cell.Wall;
+  }
 
   drawGrid();
   drawCells();
